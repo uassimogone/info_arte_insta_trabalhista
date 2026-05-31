@@ -13,7 +13,7 @@ def executar_pipeline_diario():
     img_render = ImageManager()
     telegram = TelegramBot()
 
-    # 1. Carrega o histórico persistente (Sem redefinir ou limpar a lista)
+    # 1. Carrega o histórico persistente
     historico = drive.ler_historico_urls()
 
     # 2. Executa a varredura ativa na internet via Google Grounding
@@ -23,7 +23,7 @@ def executar_pipeline_diario():
         print("☕ Falha ou ausência de atualizações inéditas na internet. Encerrando.")
         return
 
-    # 3. Processa e redige os posts estruturados com o seu tom de voz (copy_style)
+    # 3. Processa e redige os posts estruturados com o seu tom de voz
     print("🧠 Redigindo posts com a inteligência artificial...")
     posts_selecionados = brain.selecionar_e_redigir_posts(conteudo_bruto, historico)
 
@@ -35,7 +35,7 @@ def executar_pipeline_diario():
     for index, post in enumerate(posts_selecionados[:TOTAL_POSTS], start=1):
         print(f"🎬 Processando Post {index}/{len(posts_selecionados)}...")
 
-        titulo = post.get("titulo", "Alerta Patronal")
+        titulo = post.get("titulo", "Novidade Tech")
         legenda = post.get("legenda_completa", "")
         prompt_vis = post.get("prompt_imagem", "Modern abstract corporate background")
         keyword_pex = post.get("pexels_keyword", "business")
@@ -57,12 +57,13 @@ def executar_pipeline_diario():
         telegram.enviar_post(img_final_png, index, legenda, titulo)
         posts_enviados_com_sucesso += 1
 
-        # Alimenta a persistência para garantir o ineditismo nas próximas execuções
+        # CORREÇÃO APLICADA: Agora salvamos o TÍTULO junto com a URL para a IA ter memória do assunto!
         if url_noticia:
-            drive.salvar_no_historico(url_noticia)
+            registro_memoria = f"[TEMA ABORDADO: {titulo}] - {url_noticia}"
+            drive.salvar_no_historico(registro_memoria)
 
     if posts_enviados_com_sucesso > 0:
-        telegram.enviar_mensagem(f"✅ *Produção e curadoria concluídas!* {posts_enviados_com_sucesso} posts reais gerados e postados para @uassimogone.")
+        telegram.enviar_mensagem(f"✅ *Produção e curadoria concluídas!* {posts_enviados_com_sucesso} posts reais gerados.")
 
 if __name__ == "__main__":
     executar_pipeline_diario()
