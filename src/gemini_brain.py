@@ -24,11 +24,17 @@ class GeminiBrain:
         
         prompt_pesquisa = f"""
         Você é um estrategista em Direito do Trabalho Patronal e Direito Empresarial.
-        Faça uma varredura profunda na internet hoje e traga as 5 principais novidades, julgados do TST/STF ou alertas práticos de RH que impactam EMPREGADORES.
-        Priorize decisões do TST, portais como Conjur e Migalhas. Foco em blindar a empresa.
-        Não aborde links listados abaixo:
+        Faça uma varredura profunda na internet hoje e traga as 5 principais novidades.
+        
+        REGRAS DE OURO DA CURADORIA (EVITE REPETIÇÕES):
+        1. DIVERSIDADE TEMÁTICA: O perfil está ficando repetitivo. Fuja do óbvio (chega de NR-1, Pejotização simples ou Burnout genérico). Vá atrás dos assuntos mais polêmicos, urgentes e atuais do momento (Exemplos: fim da escala 6x1, novas regulamentações no Congresso, multas surreais recentes, uso de IA nas relações de trabalho).
+        2. ANÁLISE DE MEMÓRIA: Abaixo está o histórico dos últimos posts (com o título do que foi falado). Deduza o TEMA CENTRAL de cada um deles e PROÍBA a si mesmo de trazer notícias sobre esses mesmos temas hoje.
+        3. Foco em blindar a empresa com base em decisões de Tribunais Superiores, Conjur e Migalhas.
+        
+        HISTÓRICO DE TEMAS JÁ PUBLICADOS RECENTEMENTE (NÃO REPITA):
         {historico_str}
-        Retorne um resumo técnico e a URL real da notícia.
+        
+        Retorne um resumo técnico profundo e a URL real da notícia.
         """
         
         for modelo in MODELOS_TEXTO:
@@ -119,7 +125,6 @@ class GeminiBrain:
 
     def _gerar_google_imagen(self, prompt: str, path: str) -> str:
         try:
-            # Correção para o novo SDK: generate_images (plural)
             result = self.client.models.generate_images(
                 model=MODELO_IMAGEM,
                 prompt=prompt,
@@ -143,7 +148,6 @@ class GeminiBrain:
         try:
             prompt_turbinado = f"{prompt}, masterpiece, cinematic"
             encoded_prompt = urllib.parse.quote(prompt_turbinado)
-            # Modelo padrão HQ ativado. Removido "?model=flux" para evitar o erro de cobrança 402
             url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true"
             r = requests.get(url, timeout=25)
             if r.status_code == 200:
