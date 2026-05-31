@@ -123,7 +123,7 @@ class GeminiBrain:
                     if "legenda_completa" not in post or not post["legenda_completa"].strip():
                         tit = post.get("titulo", "Alerta Estratégico")
                         lnk = post.get("url", "Tribunais Superiores")
-                        logging.warning(f"⚠️ Atenção: Detectada falha de preenchimento na legenda do Post {index+1}. Injetando Fallback.")
+                        logging.warning(f"⚠️ Detectada falha de preenchimento na legenda do Post {index+1}. Injetando Fallback.")
                         post["legenda_completa"] = (
                             f"📢 *ALERTA EXTRAORDINÁRIO PARA GESTORES*\n\n"
                             f"Novas atualizações e precedentes nos tribunais demandam auditoria preventiva imediata "
@@ -188,4 +188,35 @@ class GeminiBrain:
         try:
             prompt_turbinado = f"{prompt}, masterpiece, best quality, cinematic photography"
             encoded_prompt = urllib.parse.quote(prompt_turbinado)
-            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=
+            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&model=flux"
+            
+            r = requests.get(url, timeout=25)
+            if r.status_code == 200:
+                with open(path, "wb") as f:
+                    f.write(r.content)
+                if self._validar_imagem(path):
+                    logging.info("✅ Imagem hiper-realista gerada com sucesso pelo FLUX!")
+                    return path
+            else:
+                logging.error(f"❌ Pollinations retornou status {r.status_code}")
+        except Exception as e:
+            logging.error(f"❌ Pollinations falhou: {e}")
+        return ""
+
+    def _buscar_imagem_pexels(self, keyword: str, path: str) -> str:
+        try:
+            url = f"https://api.pexels.com/v1/search?query={keyword}&per_page=1&orientation=square"
+            headers = {"Authorization": PEXELS_API_KEY} if PEXELS_API_KEY else {}
+            if not PEXELS_API_KEY: return ""
+            r = requests.get(url, headers=headers, timeout=10).json()
+            if r.get("photos"):
+                img_url = r["photos"][0]["src"]["large"]
+                data = requests.get(img_url, timeout=10).content
+                with open(path, "wb") as f:
+                    f.write(data)
+                if self._validar_imagem(path):
+                    logging.info("✅ Imagem extraída do Pexels.")
+                    return path
+        except Exception as e:
+            logging.error(f"❌ Erro no Pexels: {e}")
+        return ""
