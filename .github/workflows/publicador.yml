@@ -1,4 +1,4 @@
-name: Execucao Diario LegalTech Bot
+name: Execucao Diario Trabalhista Bot
 
 on:
   schedule:
