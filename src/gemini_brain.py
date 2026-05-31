@@ -2,6 +2,7 @@ import json
 import requests
 import urllib.parse
 import logging
+import re
 from bs4 import BeautifulSoup
 from google import genai
 from google.genai import types
@@ -52,7 +53,7 @@ class GeminiBrain:
                 logging.info(f"✅ Varredura concluída com sucesso pelo modelo {modelo}!")
                 return response.text
             except Exception as e:
-                logging.warning(f"⚠️ Modelo {modelo} falhou ou está sobrecarregado. Tentando próximo...")
+                logging.warning(f"⚠️ Modelo {modelo} falhou ou está sobrecarregado. Tentando próximo... Erro: {e}")
                 continue
                 
         logging.error("❌ Todos os modelos de busca falharam. Instabilidade no Google.")
@@ -71,7 +72,7 @@ class GeminiBrain:
         
         DIRETRIZES VISUAIS REFINADAS (NEXO E COERÊNCIA COM A NOTÍCIA):
         - O "prompt_imagem" deve criar uma metáfora visual DIRETAMENTE RELACIONADA com o tema específico da notícia redigida.
-        - Se a notícia for sobre Justa Causa ou Julgamento, foque em elementos de lei (gavel, law scales).
+        - Se a notícia for sobre Justa Causa ou Julgamento, foque em elements de lei (gavel, law scales).
         - Se for sobre Segurança do Trabalho ou EPI, inclua elementos industriais elegantes (safety helmet on glass desk, industrial blueprint).
         - Se for sobre Dinheiro, Horas Extras ou Caixa, inclua elementos financeiros (fountain pen on financial charts, calculator, luxury watch).
         - Use OBRIGATORIAMENTE os termos fotográficos: "Cinematic lighting, 8k resolution, photorealistic, hyper-detailed, dramatic shadows, modern luxury corporate aesthetic, professional photography".
@@ -103,11 +104,15 @@ class GeminiBrain:
                     )
                 )
                 
+                # Limpeza de possíveis marcações Markdown do JSON para evitar falhas de parsing
+                texto_limpo = response.text.strip()
+                if texto_limpo.startswith("```"):
+                    texto_limpo = re.sub(r"^```json\s*|^```\s*|```$", "", texto_limpo, flags=re.MULTILINE).strip()
+
                 # Parsing do JSON gerado
-                posts = json.loads(response.text)
+                posts = json.loads(texto_limpo)
                 
-                # BLINDAGEM ANTI-DESALINHAMENTO DE CHAVES:
-                # Varre os posts para garantir que se a IA errar o nome da chave, o Python corrige para o main.py ler
+                # BLINDAGEM ANTI-DESALINHAMENTO DE CHAVES
                 for post in posts:
                     if "legenda" in post and "legenda_completa" not in post:
                         post["legenda_completa"] = post["legenda"]
@@ -130,7 +135,8 @@ class GeminiBrain:
         except:
             return False
 
-    def generar_imagem_ia(self, prompt_visual: str, keyword_pexels: str, url_noticia: str, ia_nominal: bool, output_path: str) -> str:
+    # CORREÇÃO APLICADA: Nome do método corrigido de 'generar_imagem_ia' para 'gerar_imagem_ia'
+    def gerar_imagem_ia(self, prompt_visual: str, keyword_pexels: str, url_noticia: str, ia_nominal: bool, output_path: str) -> str:
         logging.info(f"🌐 PROCESSANDO IMAGEM PARA O PROMPT: {prompt_visual}")
         
         logging.info("👉 [Plano A] Acionando Google Imagen 3...")
@@ -146,10 +152,14 @@ class GeminiBrain:
 
     def _gerar_google_imagen(self, prompt: str, path: str) -> str:
         try:
-            result = self.client.models.generate_images(
+            result = self.client.models.generate_image(
                 model=MODELO_IMAGEM,
                 prompt=prompt,
-                config=types.GenerateImagesConfig(number_of_images=1, output_mime_type="image/jpeg")
+                config=dict(
+                    numberOfImages=1,
+                    outputMimeType="image/jpeg",
+                    aspectRatio="1:1"
+                )
             )
             for generated_image in result.generated_images:
                 with open(path, "wb") as f:
