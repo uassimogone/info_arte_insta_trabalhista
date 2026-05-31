@@ -34,21 +34,26 @@ class GeminiBrain:
         Retorne um relatório estruturado contendo o resumo técnico do avanço, a implicação para o empresário e, obrigatoriamente, a URL real de origem da notícia.
         """
         
-        try:
-            modelo_pesquisa = MODELOS_TEXTO[0]
-            response = self.client.models.generate_content(
-                model=modelo_pesquisa,
-                contents=prompt_pesquisa,
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                    temperature=0.3
+        # Padrão de Fallback: Tenta a varredura com cada modelo da lista até ter sucesso
+        for modelo in MODELOS_TEXTO:
+            try:
+                print(f"🔄 Solicitando varredura ao modelo: {modelo}...")
+                response = self.client.models.generate_content(
+                    model=modelo,
+                    contents=prompt_pesquisa,
+                    config=types.GenerateContentConfig(
+                        tools=[types.Tool(google_search=types.GoogleSearch())],
+                        temperature=0.3
+                    )
                 )
-            )
-            print("✅ Varredura e filtragem de ineditismo concluídas com sucesso!")
-            return response.text
-        except Exception as e:
-            print(f"❌ Erro na varredura ativa da internet: {e}")
-            return ""
+                print(f"✅ Varredura concluída com sucesso pelo modelo {modelo}!")
+                return response.text
+            except Exception as e:
+                print(f"⚠️ Modelo {modelo} falhou ou está sobrecarregado (Erro: {e}). Tentando o próximo...")
+                continue
+                
+        print("❌ Todos os modelos de busca falharam. Os servidores do Google podem estar fora do ar.")
+        return ""
 
     def selecionar_e_redigir_posts(self, conteudo_bruto_web: str, historico_urls: list) -> list:
         system_instruction = f"""
@@ -77,21 +82,26 @@ class GeminiBrain:
         ]
         """
         
-        try:
-            modelo_redacao = MODELOS_TEXTO[0]
-            response = self.client.models.generate_content(
-                model=modelo_redacao,
-                contents=f"Conteúdo minerado:\n\n{conteudo_bruto_web}\n\nEscreva os posts respeitando rigorosamente o formato JSON e a persona patronal.",
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    response_mime_type="application/json",
-                    temperature=0.4
+        # Padrão de Fallback: Tenta a redação com cada modelo da lista até ter sucesso
+        for modelo in MODELOS_TEXTO:
+            try:
+                print(f"🧠 Redigindo posts com a inteligência artificial (Modelo: {modelo})...")
+                response = self.client.models.generate_content(
+                    model=modelo,
+                    contents=f"Conteúdo minerado:\n\n{conteudo_bruto_web}\n\nEscreva os posts respeitando rigorosamente o formato JSON e a persona patronal.",
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        response_mime_type="application/json",
+                        temperature=0.4
+                    )
                 )
-            )
-            return json.loads(response.text)
-        except Exception as e:
-            print(f"❌ Erro na geração/parsing de copywriting do Gemini: {e}")
-            return []
+                return json.loads(response.text)
+            except Exception as e:
+                print(f"⚠️ Modelo {modelo} falhou na geração do texto (Erro: {e}). Tentando backup...")
+                continue
+                
+        print("❌ Todos os modelos de redação falharam devido à instabilidade na API.")
+        return []
 
     def _validar_imagem(self, path: str) -> bool:
         try:
