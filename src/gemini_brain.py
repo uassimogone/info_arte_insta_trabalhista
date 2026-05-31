@@ -72,7 +72,7 @@ class GeminiBrain:
         
         DIRETRIZES VISUAIS REFINADAS (NEXO E COERÊNCIA COM A NOTÍCIA):
         - O "prompt_imagem" deve criar uma metáfora visual DIRETAMENTE RELACIONADA com o tema específico da notícia redigida.
-        - Se a notícia for sobre Justa Causa ou Julgamento, foque em elements de lei (gavel, law scales).
+        - Se a notícia for sobre Justa Causa ou Julgamento, foque em elementos de lei (gavel, law scales).
         - Se for sobre Segurança do Trabalho ou EPI, inclua elementos industriais elegantes (safety helmet on glass desk, industrial blueprint).
         - Se for sobre Dinheiro, Horas Extras ou Caixa, inclua elementos financeiros (fountain pen on financial charts, calculator, luxury watch).
         - Use OBRIGATORIAMENTE os termos fotográficos: "Cinematic lighting, 8k resolution, photorealistic, hyper-detailed, dramatic shadows, modern luxury corporate aesthetic, professional photography".
@@ -112,12 +112,26 @@ class GeminiBrain:
                 # Parsing do JSON gerado
                 posts = json.loads(texto_limpo)
                 
-                # BLINDAGEM ANTI-DESALINHAMENTO DE CHAVES
-                for post in posts:
-                    if "legenda" in post and "legenda_completa" not in post:
-                        post["legenda_completa"] = post["legenda"]
-                    if "legenda_completa" not in post:
-                        post["legenda_completa"] = "Alerta estratégico enviado para o empresário. Verifique a fonte oficial do TST."
+                # BLINDAGEM MÁXIMA ANTI-OSCILAÇÃO DE CHAVES (POST 1, 2 e 3):
+                for index, post in enumerate(posts):
+                    # Procura variações alternativas que a IA possa ter gerado para o texto
+                    for variante in ["legenda", "texto", "content", "copy", "legenda_completa_"]:
+                        if variante in post and "legenda_completa" not in post:
+                            post["legenda_completa"] = post[variante]
+                    
+                    # Fallback de segurança se o campo continuar ausente ou vazio
+                    if "legenda_completa" not in post or not post["legenda_completa"].strip():
+                        tit = post.get("titulo", "Alerta Estratégico")
+                        lnk = post.get("url", "Tribunais Superiores")
+                        logging.warning(f"⚠️ Atenção: Detectada falha de preenchimento na legenda do Post {index+1}. Injetando Fallback.")
+                        post["legenda_completa"] = (
+                            f"📢 *ALERTA EXTRAORDINÁRIO PARA GESTORES*\n\n"
+                            f"Novas atualizações e precedentes nos tribunais demandam auditoria preventiva imediata "
+                            f"sobre os procedimentos internos da sua empresa.\n\n"
+                            f"Mantenha a governança corporativa alinhada para mitigar passivos trabalhistas ocultos e proteger o caixa do seu negócio.\n\n"
+                            f"Fonte: {lnk}\n\n"
+                            f"#AdvocaciaPatronal #DireitoDoTrabalho #ComplianceTrabalhista #GestaoDeRisco"
+                        )
                         
                 return posts
             except Exception as e:
@@ -135,7 +149,6 @@ class GeminiBrain:
         except:
             return False
 
-    # CORREÇÃO APLICADA: Nome do método corrigido de 'generar_imagem_ia' para 'gerar_imagem_ia'
     def gerar_imagem_ia(self, prompt_visual: str, keyword_pexels: str, url_noticia: str, ia_nominal: bool, output_path: str) -> str:
         logging.info(f"🌐 PROCESSANDO IMAGEM PARA O PROMPT: {prompt_visual}")
         
@@ -175,35 +188,4 @@ class GeminiBrain:
         try:
             prompt_turbinado = f"{prompt}, masterpiece, best quality, cinematic photography"
             encoded_prompt = urllib.parse.quote(prompt_turbinado)
-            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&model=flux"
-            
-            r = requests.get(url, timeout=25)
-            if r.status_code == 200:
-                with open(path, "wb") as f:
-                    f.write(r.content)
-                if self._validar_imagem(path):
-                    logging.info("✅ Imagem hiper-realista gerada com sucesso pelo FLUX!")
-                    return path
-            else:
-                logging.error(f"❌ Pollinations retornou status {r.status_code}")
-        except Exception as e:
-            logging.error(f"❌ Pollinations falhou: {e}")
-        return ""
-
-    def _buscar_imagem_pexels(self, keyword: str, path: str) -> str:
-        try:
-            url = f"https://api.pexels.com/v1/search?query={keyword}&per_page=1&orientation=square"
-            headers = {"Authorization": PEXELS_API_KEY} if PEXELS_API_KEY else {}
-            if not PEXELS_API_KEY: return ""
-            r = requests.get(url, headers=headers, timeout=10).json()
-            if r.get("photos"):
-                img_url = r["photos"][0]["src"]["large"]
-                data = requests.get(img_url, timeout=10).content
-                with open(path, "wb") as f:
-                    f.write(data)
-                if self._validar_imagem(path):
-                    logging.info("✅ Imagem extraída do Pexels.")
-                    return path
-        except Exception as e:
-            logging.error(f"❌ Erro no Pexels: {e}")
-        return ""
+            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=
