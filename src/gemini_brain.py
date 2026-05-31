@@ -1,71 +1,172 @@
+import json
+import requests
+import urllib.parse
+from bs4 import BeautifulSoup
 from google import genai
 from google.genai import types
-import logging
-from src.config import GEMINI_API_KEY, PERSONA_PROMPT
-
-# Configuração básica de log
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+from PIL import Image
+from src.config import GEMINI_API_KEY, MODELOS_TEXTO, MODELO_IMAGEM, PEXELS_API_KEY
+from src.copy_style import ESTILO_COPY_PROPRIO
 
 class GeminiBrain:
     def __init__(self):
-        """Inicializa o cliente da API do Gemini usando o SDK moderno (google-genai)."""
         if not GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY não encontrada nas variáveis de ambiente.")
-            
+            raise ValueError("Erro: GEMINI_API_KEY não foi configurada!")
         self.client = genai.Client(api_key=GEMINI_API_KEY)
-        
-        # Restaurando o modelo veloz e moderno que você usava na outra automação
-        self.modelo_texto = "gemini-2.5-flash" 
 
-    def processar_conteudo(self, texto_bruto: str, camada_origem: int) -> dict:
+    def buscar_noticias_reais_na_internet(self, historico_urls: list) -> str:
+        print("🔍 Iniciando varredura em tempo real na internet (Google Search Grounding)...")
+        
+        historico_str = "\n".join(historico_urls[-30:]) if historico_urls else "Nenhum histórico recente."
+        
+        prompt_pesquisa = f"""
+        Você é um estrategista em Direito do Trabalho Patronal e Direito Empresarial.
+        Sua tarefa é fazer uma varredura profunda na internet hoje e trazer as 5 principais novidades, julgados do TST/STF ou alertas práticos de RH que impactam diretamente os EMPREGADORES.
+        
+        Siga estritamente estes critérios de curadoria para a busca:
+        1. Priorize decisões do TST (Tribunal Superior do Trabalho), STF, portais como Conjur, Migalhas Trabalhista, Machado Meyer e portais de RH (Convenia, RH Noticias).
+        2. Busque teses empresariais, regras de compliance, justa causa, LGPD nas relações de emprego e gestão de passivos.
+        3. Elimine conteúdos puramente teóricos ou focados em defender o funcionário. O foco é blindar a empresa.
+        
+        REGRA CRÍTICA DE FILTRO: Não aborde assuntos ou links que já estejam listados no histórico abaixo:
+        {historico_str}
+        
+        Retorne um relatório estruturado contendo o resumo técnico do avanço, a implicação para o empresário e, obrigatoriamente, a URL real de origem da notícia.
         """
-        Processa o conteúdo de referência aplicando a lógica específica da camada de origem.
-        """
-        logging.info(f"Processando conteúdo proveniente da Camada {camada_origem}")
         
-        instrucao_base = "Crie um roteiro completo de publicação (texto + sugestão de arte) para Instagram/TikTok. "
-        
-        # Lógica de Roteamento por Camada (Patronal)
-        if camada_origem == 1:
-            instrucao_especifica = "O texto abaixo reflete uma decisão recente ou movimentação de um Tribunal Superior (TST/STF). Traduza essa decisão técnica para as consequências práticas no caixa e na gestão da empresa. Gere um alerta executivo de alto impacto focando em gestão de risco."
-        elif camada_origem == 2:
-            instrucao_especifica = "O texto abaixo é um artigo de um portal jurídico ou especializado em RH. Extraia a essência da atualização e transforme em um manual rápido ou checklist estratégico para o empresário aplicar na blindagem do seu negócio hoje."
-        elif camada_origem == 3:
-            instrucao_especifica = "ATENÇÃO MÁXIMA: O texto abaixo é de um produtor de conteúdo/influencer. Use isso APENAS como inspiração de TEMA e ÂNGULO. SOB NENHUMA HIPÓTESE copie o texto original. Crie um post 100% autoral. Adapte o conteúdo estritamente para a dor do EMPREGADOR e como ele pode se proteger."
-        else:
-            instrucao_especifica = "Adapte o conteúdo abaixo para um post de alta performance e atração de clientes corporativos."
-
-        prompt_final = (
-            f"{instrucao_base}\n\n"
-            f"DIRETRIZ DA FONTE:\n{instrucao_especifica}\n\n"
-            f"TEXTO DE REFERÊNCIA (INPUT):\n{texto_bruto}\n\n"
-            "ESTRUTURA DE SAÍDA EXIGIDA:\n"
-            "1. Gancho (Hook): Frase de impacto em até 3 segundos.\n"
-            "2. Desenvolvimento: Explicação do risco/solução de forma objetiva e corporativa.\n"
-            "3. Call to Action (CTA): Focado em instigar auditoria ou consultoria preventiva.\n"
-            "4. Prompt de Imagem: Sugira uma arte baseada nas regras minimalistas do projeto."
-        )
-
         try:
-            # Sintaxe exata que funciona no seu repositório original
+            modelo_pesquisa = MODELOS_TEXTO[0]
             response = self.client.models.generate_content(
-                model=self.modelo_texto,
-                contents=prompt_final,
+                model=modelo_pesquisa,
+                contents=prompt_pesquisa,
                 config=types.GenerateContentConfig(
-                    system_instruction=PERSONA_PROMPT,
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    temperature=0.3
+                )
+            )
+            print("✅ Varredura e filtragem de ineditismo concluídas com sucesso!")
+            return response.text
+        except Exception as e:
+            print(f"❌ Erro na varredura ativa da internet: {e}")
+            return ""
+
+    def selecionar_e_redigir_posts(self, conteudo_bruto_web: str, historico_urls: list) -> list:
+        system_instruction = f"""
+        Sua missão é ler o conteúdo jurídico coletado e criar 3 posts individuais extremamente persuasivos voltados para o empresário, garantindo a prevenção de riscos trabalhistas.
+        
+        Use obrigatoriamente as diretrizes contidas abaixo:
+        {ESTILO_COPY_PROPRIO}
+        
+        Regras de Negócio Cruciais:
+        1. FONTE OBRIGATÓRIA: No final da legenda, escreva "Fonte: [Link da Notícia]".
+        2. HASHTAGS OBRIGATÓRIAS.
+        
+        DIRETRIZES VISUAIS:
+        - O prompt_imagem deve ser um conceito visual focado em negócios, escritório clean, minimalista estilo Apple, sem poluição. Sugira objetos como martelo de juiz, gráficos, mesas executivas. NUNCA gere prompts com rostos ou logotipos complexos.
+
+        Responda estritamente em formato JSON válido, contendo exatamente esta estrutura (não adicione saudações fora do JSON):
+        [
+          {{
+            "titulo": "Título de impacto curto (max 22 caracteres por linha) para a arte",
+            "legenda_completa": "Legenda profunda seguindo o ESTILO_COPY_PROPRIO, com as quebras e fonte",
+            "prompt_imagem": "Prompt de imagem detalhado EM INGLÊS focado em business minimalista",
+            "pexels_keyword": "uma_palavra_em_ingles (ex: corporate, office, suit, justice)",
+            "url": "A URL real da notícia extraída",
+            "contem_ia_nominal": false
+          }}
+        ]
+        """
+        
+        try:
+            modelo_redacao = MODELOS_TEXTO[0]
+            response = self.client.models.generate_content(
+                model=modelo_redacao,
+                contents=f"Conteúdo minerado:\n\n{conteudo_bruto_web}\n\nEscreva os posts respeitando rigorosamente o formato JSON e a persona patronal.",
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
                     temperature=0.4
                 )
             )
-            return {
-                "status": "sucesso",
-                "conteudo": response.text
-            }
+            return json.loads(response.text)
         except Exception as e:
-            logging.error(f"Erro na geração de conteúdo via Gemini: {str(e)}")
-            return {
-                "status": "erro",
-                "mensagem": str(e)
-            }
+            print(f"❌ Erro na geração/parsing de copywriting do Gemini: {e}")
+            return []
 
-# Instância Singleton para uso no main.py
-brain = GeminiBrain()
+    def _validar_imagem(self, path: str) -> bool:
+        try:
+            with Image.open(path) as img:
+                img.verify()
+            return True
+        except:
+            return False
+
+    def gerar_imagem_ia(self, prompt_visual: str, keyword_pexels: str, url_noticia: str, ia_nominal: bool, output_path: str) -> str:
+        print("🌐 GERANDO IMAGEM CORPORATIVA")
+        print("👉 [Plano A] Acionando IA Google...")
+        img = self._gerar_google_imagen(prompt_visual, output_path)
+        if img: return img
+        
+        print("👉 [Plano B] Acionando IA Pollinations...")
+        img = self._gerar_imagem_pollinations(prompt_visual, output_path)
+        if img: return img
+        
+        print("👉 [Plano C] Acionando Pexels...")
+        return self._buscar_imagem_pexels(keyword_pexels, output_path)
+
+    def _capturar_imagem_original_noticia(self, url: str, path: str) -> str:
+        try:
+            headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code != 200: return ""
+            soup = BeautifulSoup(r.text, 'html.parser')
+            meta_og = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
+            if meta_og and meta_og.get("content"):
+                img_url = meta_og["content"]
+                img_data = requests.get(img_url, timeout=10).content
+                with open(path, 'wb') as f:
+                    f.write(img_data)
+                if self._validar_imagem(path): return path
+        except: pass
+        return ""
+
+    def _gerar_google_imagen(self, prompt: str, path: str) -> str:
+        try:
+            result = self.client.models.generate_images(
+                model=MODELO_IMAGEM,
+                prompt=prompt,
+                config=types.GenerateImagesConfig(number_of_images=1, output_mime_type="image/jpeg")
+            )
+            for generated_image in result.generated_images:
+                with open(path, "wb") as f:
+                    f.write(generated_image.image.image_bytes)
+                if self._validar_imagem(path): return path
+        except: pass
+        return ""
+
+    def _gerar_imagem_pollinations(self, prompt: str, path: str) -> str:
+        try:
+            encoded_prompt = urllib.parse.quote(prompt)
+            url = f"https://image.pollinations.ai/p/{encoded_prompt}?width=1080&height=1080&nologo=true"
+            r = requests.get(url, timeout=15)
+            if r.status_code == 200:
+                with open(path, "wb") as f:
+                    f.write(r.content)
+                if self._validar_imagem(path): return path
+        except: pass
+        return ""
+
+    def _buscar_imagem_pexels(self, keyword: str, path: str) -> str:
+        try:
+            url = f"https://api.pexels.com/v1/search?query={keyword}&per_page=1&orientation=square"
+            headers = {"Authorization": PEXELS_API_KEY} if PEXELS_API_KEY else {}
+            if not PEXELS_API_KEY: return ""
+            r = requests.get(url, headers=headers, timeout=10).json()
+            if r.get("photos"):
+                img_url = r["photos"][0]["src"]["large"]
+                data = requests.get(img_url, timeout=10).content
+                with open(path, "wb") as f:
+                    f.write(data)
+                if self._validar_imagem(path): return path
+        except: pass
+        return ""
