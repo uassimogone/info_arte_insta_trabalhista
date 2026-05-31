@@ -1,4 +1,5 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import logging
 from src.config import GEMINI_API_KEY, PERSONA_PROMPT
 
@@ -7,26 +8,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 class GeminiBrain:
     def __init__(self):
-        """Inicializa o cliente da API do Gemini e configura o modelo."""
+        """Inicializa o cliente da API do Gemini usando o SDK moderno (google-genai)."""
         if not GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY não encontrada nas variáveis de ambiente.")
             
-        genai.configure(api_key=GEMINI_API_KEY)
+        self.client = genai.Client(api_key=GEMINI_API_KEY)
         
-        # Temperatura de 0.4: Equilíbrio ideal entre precisão jurídica e criatividade para o feed
-        self.generation_config = {
-            "temperature": 0.4,
-            "top_p": 0.9,
-            "top_k": 32,
-            "max_output_tokens": 2048,
-        }
-        
-        # CORREÇÃO APLICADA: Utilização do alias '-latest' exigido pelo endpoint v1beta
-        self.model = genai.GenerativeModel(
-            model_name="gemini-1.5-pro-latest",
-            generation_config=self.generation_config,
-            system_instruction=PERSONA_PROMPT
-        )
+        # Restaurando o modelo veloz e moderno que você usava na outra automação
+        self.modelo_texto = "gemini-2.5-flash" 
 
     def processar_conteudo(self, texto_bruto: str, camada_origem: int) -> dict:
         """
@@ -36,25 +25,13 @@ class GeminiBrain:
         
         instrucao_base = "Crie um roteiro completo de publicação (texto + sugestão de arte) para Instagram/TikTok. "
         
-        # Lógica de Roteamento por Camada
+        # Lógica de Roteamento por Camada (Patronal)
         if camada_origem == 1:
-            instrucao_especifica = (
-                "O texto abaixo reflete uma decisão recente ou movimentação de um Tribunal Superior (TST/STF). "
-                "Traduza essa decisão técnica para as consequências práticas no caixa e na gestão da empresa. "
-                "Gere um alerta executivo de alto impacto focando em gestão de risco."
-            )
+            instrucao_especifica = "O texto abaixo reflete uma decisão recente ou movimentação de um Tribunal Superior (TST/STF). Traduza essa decisão técnica para as consequências práticas no caixa e na gestão da empresa. Gere um alerta executivo de alto impacto focando em gestão de risco."
         elif camada_origem == 2:
-            instrucao_especifica = (
-                "O texto abaixo é um artigo de um portal jurídico ou especializado em RH. "
-                "Extraia a essência da atualização e transforme em um manual rápido ou checklist estratégico "
-                "para o empresário aplicar na blindagem do seu negócio hoje."
-            )
+            instrucao_especifica = "O texto abaixo é um artigo de um portal jurídico ou especializado em RH. Extraia a essência da atualização e transforme em um manual rápido ou checklist estratégico para o empresário aplicar na blindagem do seu negócio hoje."
         elif camada_origem == 3:
-            instrucao_especifica = (
-                "ATENÇÃO MÁXIMA: O texto abaixo é de um produtor de conteúdo/influencer. "
-                "Use isso APENAS como inspiração de TEMA e ÂNGULO. SOB NENHUMA HIPÓTESE copie o texto original. "
-                "Crie um post 100% autoral. Adapte o conteúdo estritamente para a dor do EMPREGADOR e como ele pode se proteger."
-            )
+            instrucao_especifica = "ATENÇÃO MÁXIMA: O texto abaixo é de um produtor de conteúdo/influencer. Use isso APENAS como inspiração de TEMA e ÂNGULO. SOB NENHUMA HIPÓTESE copie o texto original. Crie um post 100% autoral. Adapte o conteúdo estritamente para a dor do EMPREGADOR e como ele pode se proteger."
         else:
             instrucao_especifica = "Adapte o conteúdo abaixo para um post de alta performance e atração de clientes corporativos."
 
@@ -70,10 +47,18 @@ class GeminiBrain:
         )
 
         try:
-            resposta = self.model.generate_content(prompt_final)
+            # Sintaxe exata que funciona no seu repositório original
+            response = self.client.models.generate_content(
+                model=self.modelo_texto,
+                contents=prompt_final,
+                config=types.GenerateContentConfig(
+                    system_instruction=PERSONA_PROMPT,
+                    temperature=0.4
+                )
+            )
             return {
                 "status": "sucesso",
-                "conteudo": resposta.text
+                "conteudo": response.text
             }
         except Exception as e:
             logging.error(f"Erro na geração de conteúdo via Gemini: {str(e)}")
@@ -82,5 +67,5 @@ class GeminiBrain:
                 "mensagem": str(e)
             }
 
-# Instância Singleton para uso em todo o repositório
+# Instância Singleton para uso no main.py
 brain = GeminiBrain()
