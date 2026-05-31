@@ -59,7 +59,7 @@ class ImageManager:
         
         # 3. Adiciona a Tag da marca na faixa preta
         fonte_tag = ImageFont.truetype(self.font_semibold, 34)
-        tag_text = "@legaltech_br"
+        tag_text = "@uassimogone"
         bbox_tag = draw.textbbox((0, 0), tag_text, font=fonte_tag)
         tag_x = (W - (bbox_tag[2] - bbox_tag[0])) // 2
         tag_y = FAIXA_Y + (FAIXA_H - (bbox_tag[3] - bbox_tag[1])) // 2
