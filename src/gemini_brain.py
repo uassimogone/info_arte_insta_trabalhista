@@ -9,7 +9,7 @@ from PIL import Image
 from src.config import GEMINI_API_KEY, MODELOS_TEXTO, MODELO_IMAGEM, PEXELS_API_KEY
 from src.copy_style import ESTILO_COPY_PROPRIO
 
-# Configuração básica de log para o Actions
+# Configuração de logs para exibição limpa no GitHub Actions
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class GeminiBrain:
@@ -65,23 +65,25 @@ class GeminiBrain:
         Use obrigatoriamente as diretrizes contidas abaixo:
         {ESTILO_COPY_PROPRIO}
         
-        Regras Cruciais:
+        Regras Cruciais de Legenda:
         1. FONTE OBRIGATÓRIA: No final da legenda, escreva "Fonte: [Link da Notícia]".
         2. HASHTAGS OBRIGATÓRIAS.
         
-        DIRETRIZES VISUAIS (ESTÉTICA VIRAL DE ALTO IMPACTO):
-        - O "prompt_imagem" não deve ser chato. Escreva um prompt hiper-realista EM INGLÊS.
-        - Use termos obrigatórios: "Cinematic lighting, 8k resolution, photorealistic, hyper-detailed, dramatic shadows, modern luxury corporate aesthetic".
-        - Exemplo bom: "A hyper-realistic glowing neon gavel resting on a sleek black glass executive desk, dark cinematic lighting, expensive corporate office background, 8k resolution, dramatic shadows."
-        - NUNCA gere prompts pedindo textos escritos na imagem, logotipos reais, rostos humanos detalhados ou violência. Apenas objetos corporativos hiper-realistas e minimalistas.
+        DIRETRIZES VISUAIS REFINADAS (NEXO E COERÊNCIA COM A NOTÍCIA):
+        - O "prompt_imagem" deve criar uma metáfora visual DIRETAMENTE RELACIONADA com o tema específico da notícia redigida.
+        - Se a notícia for sobre Justa Causa ou Julgamento, foque em elementos de lei (gavel, law scales).
+        - Se for sobre Segurança do Trabalho ou EPI, inclua elementos industriais elegantes (safety helmet on glass desk, industrial blueprint).
+        - Se for sobre Dinheiro, Horas Extras ou Caixa, inclua elementos financeiros (fountain pen on financial charts, calculator, luxury watch).
+        - Use OBRIGATORIAMENTE os termos fotográficos: "Cinematic lighting, 8k resolution, photorealistic, hyper-detailed, dramatic shadows, modern luxury corporate aesthetic, professional photography".
+        - O cenário deve ser sempre sofisticado (fundo de escritório de luxo escuro desfocado, mesa de vidro preta). NUNCA coloque texto escrito dentro da imagem, símbolos bizarros ou rostos humanos nítidos.
 
         Responda estritamente em formato JSON válido:
         [
           {{
             "titulo": "Título curto de impacto (max 25 caracteres)",
-            "legenda_completa": "Legenda com quebras de linha e fonte",
-            "prompt_imagem": "Prompt cinematográfico e hiper-realista EM INGLÊS",
-            "pexels_keyword": "palavra-chave simples em ingles (ex: gavel, office, dark)",
+            "legenda_completa": "Legenda profunda e completa seguindo o ESTILO_COPY_PROPRIO, com as quebras de linha, fonte e tags",
+            "prompt_imagem": "Prompt cinematográfico, hiper-realista e temático EM INGLÊS conectando o objeto ao assunto da notícia",
+            "pexels_keyword": "uma unica palavra em ingles para busca reserva (ex: gavel, office, document)",
             "url": "A URL real da notícia",
             "contem_ia_nominal": false
           }}
@@ -100,9 +102,21 @@ class GeminiBrain:
                         temperature=0.4
                     )
                 )
-                return json.loads(response.text)
+                
+                # Parsing do JSON gerado
+                posts = json.loads(response.text)
+                
+                # BLINDAGEM ANTI-DESALINHAMENTO DE CHAVES:
+                # Varre os posts para garantir que se a IA errar o nome da chave, o Python corrige para o main.py ler
+                for post in posts:
+                    if "legenda" in post and "legenda_completa" not in post:
+                        post["legenda_completa"] = post["legenda"]
+                    if "legenda_completa" not in post:
+                        post["legenda_completa"] = "Alerta estratégico enviado para o empresário. Verifique a fonte oficial do TST."
+                        
+                return posts
             except Exception as e:
-                logging.warning(f"⚠️ Modelo {modelo} falhou na geração do texto. Tentando backup...")
+                logging.warning(f"⚠️ Modelo {modelo} falhou na geração ou parsing do JSON. Erro: {e}. Tentando backup...")
                 continue
                 
         logging.error("❌ Todos os modelos de redação falharam.")
@@ -116,14 +130,14 @@ class GeminiBrain:
         except:
             return False
 
-    def gerar_imagem_ia(self, prompt_visual: str, keyword_pexels: str, url_noticia: str, ia_nominal: bool, output_path: str) -> str:
-        logging.info("🌐 INICIANDO GERAÇÃO DE IMAGEM VIRAL/CINEMATOGRÁFICA")
+    def generar_imagem_ia(self, prompt_visual: str, keyword_pexels: str, url_noticia: str, ia_nominal: bool, output_path: str) -> str:
+        logging.info(f"🌐 PROCESSANDO IMAGEM PARA O PROMPT: {prompt_visual}")
         
         logging.info("👉 [Plano A] Acionando Google Imagen 3...")
         img = self._gerar_google_imagen(prompt_visual, output_path)
         if img: return img
         
-        logging.info("👉 [Plano B] Acionando Modelo FLUX.1 (Hiper-realista)...")
+        logging.info("👉 [Plano B] Acionando Modelo FLUX.1 (Cinematográfico)...")
         img = self._gerar_imagem_pollinations(prompt_visual, output_path)
         if img: return img
         
@@ -149,10 +163,8 @@ class GeminiBrain:
 
     def _gerar_imagem_pollinations(self, prompt: str, path: str) -> str:
         try:
-            # Adicionando a tag FLUX para forçar o modelo de ultra-realismo gratuito
-            prompt_turbinado = f"{prompt}, masterpiece, best quality, cinematic"
+            prompt_turbinado = f"{prompt}, masterpiece, best quality, cinematic photography"
             encoded_prompt = urllib.parse.quote(prompt_turbinado)
-            # A API com o parâmetro model=flux gera imagens idênticas ao Midjourney v6
             url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&model=flux"
             
             r = requests.get(url, timeout=25)
