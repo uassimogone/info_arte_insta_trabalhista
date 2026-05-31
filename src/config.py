@@ -1,68 +1,31 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-# Carrega variáveis de ambiente do arquivo .env (em ambiente local) ou do GitHub Secrets
-load_dotenv()
+# Encontra a raiz do projeto de forma absoluta (para testes locais no Mac)
+BASE_DIR = Path(__file__).resolve().parent.parent
+dotenv_path = os.path.join(BASE_DIR, ".env")
 
-# ==========================================
-# CONFIGURAÇÕES GERAIS DO PERFIL
-# ==========================================
-PROFILE_USERNAME = "@uassimogone"
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path=dotenv_path, override=True)
 
-# ==========================================
-# IDENTIDADE E LINHA EDITORIAL (SYSTEM PROMPT)
-# ==========================================
-PERSONA_PROMPT = """
-Você é um advogado corporativo sênior e estrategista jurídico. 
-Sua bagagem inclui mais de 20 anos de experiência prática em contencioso trabalhista e consultoria preventiva de alta complexidade.
-Além da trincheira corporativa, você é professor universitário de Processo do Trabalho, Direito Empresarial e Societário, o que te confere extremo rigor técnico, mas você sabe traduzir essa técnica para a linguagem de negócios.
-
-DIRETRIZES DE COMUNICAÇÃO:
-1. Seu público-alvo é EXCLUSIVAMENTE o empresário, o gestor e o tomador de decisão.
-2. Seu objetivo é educar sobre gestão de risco, prevenção de passivos trabalhistas, proteção de dados nas relações de emprego e estruturação robusta para dispensas (como justa causa).
-3. Aja sempre sob a ótica patronal. Qualquer dor ou problema do trabalhador deve ser invertido estruturalmente para "como o empregador se previne contra este cenário".
-4. O tom não deve ser pedante. Seja direto, high tech, chamativo e pragmático. Fale sobre o que impacta o caixa e a segurança do negócio.
-"""
-
-# ==========================================
-# DIRETRIZES DE DESIGN VISUAL
-# ==========================================
-VISUAL_STYLE_PROMPT = "Estética minimalista, padrão Apple, clean layout, alto contraste, iconografia corporativa sofisticada, sem poluição visual. Foco em transmitir autoridade, clareza e inovação."
-
-# ==========================================
-# FONTES DE DADOS E PESQUISA HIERARQUIZADAS
-# ==========================================
-SOURCES = {
-    "camada_1_tribunais": [
-        "https://www.tst.jus.br/noticias",
-        "https://portal.stf.jus.br/noticias/"
-    ],
-    "camada_2_portais": [
-        "https://www.machadomeyer.com.br/pt/inteligencia-juridica/publicacoes-ij/inteligencia-juridica-trabalhista",
-        "https://www.atualizacaotrabalhista.com.br/noticias-e-artigos",
-        "https://otaviocalvet.com/Contents",
-        "https://diariodejustica.com.br/",
-        "https://www.conjur.com.br/direito-trabalhista/",
-        "https://www.migalhas.com.br/quentes", 
-        "https://blog.convenia.com.br/",
-        "https://newsrh.com.br/",
-        "https://www.rhnoticias.com.br/"
-    ],
-    "camada_3_influencers": [
-        "janainabastos",
-        "thaisinácia",
-        "paulapimentel",
-        "andreluizlima",
-        "alexandreleonelferreira",
-        "arturoliveiraadv",
-        "isabellaribeiroAdv",
-        "diariojustica"
-    ]
-}
-
-# ==========================================
-# CHAVES DE API E CREDENCIAIS
-# ==========================================
+# Credenciais de APIs (Mapeadas exatamente para o padrão Nuvem / GitHub Secrets)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
+
+# Trata o Fallback caso local use BOT_TOKEN ou TOKEN puro
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_BOT_TOKEN = TELEGRAM_TOKEN
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+# Parâmetros de Negócio Fixos para Automação em Nuvem
+TOTAL_POSTS = int(os.getenv("TOTAL_POSTS", 3))
+
+# Sistema de Fallback (Cascata) de Modelos de Texto
+MODELOS_TEXTO = [
+    "gemini-2.5-flash",      # 1º: Versão ágil e principal para o Search Grounding
+    "gemini-2.5-flash-lite", # 2º: Backup
+    "gemini-1.5-pro-latest"  # 3º: Backup pesado
+]
+
+MODELO_IMAGEM = "imagen-3.0-generate-002"
