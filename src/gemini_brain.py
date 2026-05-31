@@ -1,12 +1,16 @@
 import json
 import requests
 import urllib.parse
+import logging
 from bs4 import BeautifulSoup
 from google import genai
 from google.genai import types
 from PIL import Image
 from src.config import GEMINI_API_KEY, MODELOS_TEXTO, MODELO_IMAGEM, PEXELS_API_KEY
 from src.copy_style import ESTILO_COPY_PROPRIO
+
+# Configuração básica de log para o Actions
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class GeminiBrain:
     def __init__(self):
@@ -15,7 +19,7 @@ class GeminiBrain:
         self.client = genai.Client(api_key=GEMINI_API_KEY)
 
     def buscar_noticias_reais_na_internet(self, historico_urls: list) -> str:
-        print("🔍 Iniciando varredura em tempo real na internet (Google Search Grounding)...")
+        logging.info("🔍 Iniciando varredura em tempo real na internet (Google Search Grounding)...")
         
         historico_str = "\n".join(historico_urls[-30:]) if historico_urls else "Nenhum histórico recente."
         
@@ -24,20 +28,19 @@ class GeminiBrain:
         Sua tarefa é fazer uma varredura profunda na internet hoje e trazer as 5 principais novidades, julgados do TST/STF ou alertas práticos de RH que impactam diretamente os EMPREGADORES.
         
         Siga estritamente estes critérios de curadoria para a busca:
-        1. Priorize decisões do TST (Tribunal Superior do Trabalho), STF, portais como Conjur, Migalhas Trabalhista, Machado Meyer e portais de RH (Convenia, RH Noticias).
+        1. Priorize decisões do TST, STF, portais como Conjur, Migalhas Trabalhista, Machado Meyer e portais de RH.
         2. Busque teses empresariais, regras de compliance, justa causa, LGPD nas relações de emprego e gestão de passivos.
         3. Elimine conteúdos puramente teóricos ou focados em defender o funcionário. O foco é blindar a empresa.
         
         REGRA CRÍTICA DE FILTRO: Não aborde assuntos ou links que já estejam listados no histórico abaixo:
         {historico_str}
         
-        Retorne um relatório estruturado contendo o resumo técnico do avanço, a implicação para o empresário e, obrigatoriamente, a URL real de origem da notícia.
+        Retorne um relatório estruturado contendo o resumo técnico do avanço, a implicação para o empresário e a URL real da notícia.
         """
         
-        # Padrão de Fallback: Tenta a varredura com cada modelo da lista até ter sucesso
         for modelo in MODELOS_TEXTO:
             try:
-                print(f"🔄 Solicitando varredura ao modelo: {modelo}...")
+                logging.info(f"🔄 Solicitando varredura ao modelo: {modelo}...")
                 response = self.client.models.generate_content(
                     model=modelo,
                     contents=prompt_pesquisa,
@@ -46,49 +49,51 @@ class GeminiBrain:
                         temperature=0.3
                     )
                 )
-                print(f"✅ Varredura concluída com sucesso pelo modelo {modelo}!")
+                logging.info(f"✅ Varredura concluída com sucesso pelo modelo {modelo}!")
                 return response.text
             except Exception as e:
-                print(f"⚠️ Modelo {modelo} falhou ou está sobrecarregado (Erro: {e}). Tentando o próximo...")
+                logging.warning(f"⚠️ Modelo {modelo} falhou ou está sobrecarregado. Tentando próximo...")
                 continue
                 
-        print("❌ Todos os modelos de busca falharam. Os servidores do Google podem estar fora do ar.")
+        logging.error("❌ Todos os modelos de busca falharam. Instabilidade no Google.")
         return ""
 
     def selecionar_e_redigir_posts(self, conteudo_bruto_web: str, historico_urls: list) -> list:
         system_instruction = f"""
-        Sua missão é ler o conteúdo jurídico coletado e criar 3 posts individuais extremamente persuasivos voltados para o empresário, garantindo a prevenção de riscos trabalhistas.
+        Sua missão é ler o conteúdo jurídico e criar 3 posts individuais extremamente persuasivos voltados para o empresário.
         
         Use obrigatoriamente as diretrizes contidas abaixo:
         {ESTILO_COPY_PROPRIO}
         
-        Regras de Negócio Cruciais:
+        Regras Cruciais:
         1. FONTE OBRIGATÓRIA: No final da legenda, escreva "Fonte: [Link da Notícia]".
         2. HASHTAGS OBRIGATÓRIAS.
         
-        DIRETRIZES VISUAIS:
-        - O prompt_imagem deve ser um conceito visual focado em negócios, escritório clean, minimalista estilo Apple, sem poluição. Sugira objetos como martelo de juiz, gráficos, mesas executivas. NUNCA gere prompts com rostos ou logotipos complexos.
+        DIRETRIZES VISUAIS (ESTÉTICA VIRAL DE ALTO IMPACTO):
+        - O "prompt_imagem" não deve ser chato. Escreva um prompt hiper-realista EM INGLÊS.
+        - Use termos obrigatórios: "Cinematic lighting, 8k resolution, photorealistic, hyper-detailed, dramatic shadows, modern luxury corporate aesthetic".
+        - Exemplo bom: "A hyper-realistic glowing neon gavel resting on a sleek black glass executive desk, dark cinematic lighting, expensive corporate office background, 8k resolution, dramatic shadows."
+        - NUNCA gere prompts pedindo textos escritos na imagem, logotipos reais, rostos humanos detalhados ou violência. Apenas objetos corporativos hiper-realistas e minimalistas.
 
-        Responda estritamente em formato JSON válido, contendo exatamente esta estrutura (não adicione saudações fora do JSON):
+        Responda estritamente em formato JSON válido:
         [
           {{
-            "titulo": "Título de impacto curto (max 22 caracteres por linha) para a arte",
-            "legenda_completa": "Legenda profunda seguindo o ESTILO_COPY_PROPRIO, com as quebras e fonte",
-            "prompt_imagem": "Prompt de imagem detalhado EM INGLÊS focado em business minimalista",
-            "pexels_keyword": "uma_palavra_em_ingles (ex: corporate, office, suit, justice)",
-            "url": "A URL real da notícia extraída",
+            "titulo": "Título curto de impacto (max 25 caracteres)",
+            "legenda_completa": "Legenda com quebras de linha e fonte",
+            "prompt_imagem": "Prompt cinematográfico e hiper-realista EM INGLÊS",
+            "pexels_keyword": "palavra-chave simples em ingles (ex: gavel, office, dark)",
+            "url": "A URL real da notícia",
             "contem_ia_nominal": false
           }}
         ]
         """
         
-        # Padrão de Fallback: Tenta a redação com cada modelo da lista até ter sucesso
         for modelo in MODELOS_TEXTO:
             try:
-                print(f"🧠 Redigindo posts com a inteligência artificial (Modelo: {modelo})...")
+                logging.info(f"🧠 Redigindo posts com a inteligência artificial (Modelo: {modelo})...")
                 response = self.client.models.generate_content(
                     model=modelo,
-                    contents=f"Conteúdo minerado:\n\n{conteudo_bruto_web}\n\nEscreva os posts respeitando rigorosamente o formato JSON e a persona patronal.",
+                    contents=f"Conteúdo minerado:\n\n{conteudo_bruto_web}\n\nEscreva os posts no formato JSON estrito.",
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         response_mime_type="application/json",
@@ -97,10 +102,10 @@ class GeminiBrain:
                 )
                 return json.loads(response.text)
             except Exception as e:
-                print(f"⚠️ Modelo {modelo} falhou na geração do texto (Erro: {e}). Tentando backup...")
+                logging.warning(f"⚠️ Modelo {modelo} falhou na geração do texto. Tentando backup...")
                 continue
                 
-        print("❌ Todos os modelos de redação falharam devido à instabilidade na API.")
+        logging.error("❌ Todos os modelos de redação falharam.")
         return []
 
     def _validar_imagem(self, path: str) -> bool:
@@ -112,33 +117,18 @@ class GeminiBrain:
             return False
 
     def gerar_imagem_ia(self, prompt_visual: str, keyword_pexels: str, url_noticia: str, ia_nominal: bool, output_path: str) -> str:
-        print("🌐 GERANDO IMAGEM CORPORATIVA")
-        print("👉 [Plano A] Acionando IA Google...")
+        logging.info("🌐 INICIANDO GERAÇÃO DE IMAGEM VIRAL/CINEMATOGRÁFICA")
+        
+        logging.info("👉 [Plano A] Acionando Google Imagen 3...")
         img = self._gerar_google_imagen(prompt_visual, output_path)
         if img: return img
         
-        print("👉 [Plano B] Acionando IA Pollinations...")
+        logging.info("👉 [Plano B] Acionando Modelo FLUX.1 (Hiper-realista)...")
         img = self._gerar_imagem_pollinations(prompt_visual, output_path)
         if img: return img
         
-        print("👉 [Plano C] Acionando Pexels...")
+        logging.info("👉 [Plano C] Acionando Pexels (Fallback final)...")
         return self._buscar_imagem_pexels(keyword_pexels, output_path)
-
-    def _capturar_imagem_original_noticia(self, url: str, path: str) -> str:
-        try:
-            headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code != 200: return ""
-            soup = BeautifulSoup(r.text, 'html.parser')
-            meta_og = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "twitter:image"})
-            if meta_og and meta_og.get("content"):
-                img_url = meta_og["content"]
-                img_data = requests.get(img_url, timeout=10).content
-                with open(path, 'wb') as f:
-                    f.write(img_data)
-                if self._validar_imagem(path): return path
-        except: pass
-        return ""
 
     def _gerar_google_imagen(self, prompt: str, path: str) -> str:
         try:
@@ -150,20 +140,32 @@ class GeminiBrain:
             for generated_image in result.generated_images:
                 with open(path, "wb") as f:
                     f.write(generated_image.image.image_bytes)
-                if self._validar_imagem(path): return path
-        except: pass
+                if self._validar_imagem(path): 
+                    logging.info("✅ Imagem gerada com sucesso pelo Google Imagen!")
+                    return path
+        except Exception as e:
+            logging.error(f"❌ Google Imagen negou ou falhou: {e}")
         return ""
 
     def _gerar_imagem_pollinations(self, prompt: str, path: str) -> str:
         try:
-            encoded_prompt = urllib.parse.quote(prompt)
-            url = f"https://image.pollinations.ai/p/{encoded_prompt}?width=1080&height=1080&nologo=true"
-            r = requests.get(url, timeout=15)
+            # Adicionando a tag FLUX para forçar o modelo de ultra-realismo gratuito
+            prompt_turbinado = f"{prompt}, masterpiece, best quality, cinematic"
+            encoded_prompt = urllib.parse.quote(prompt_turbinado)
+            # A API com o parâmetro model=flux gera imagens idênticas ao Midjourney v6
+            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1080&nologo=true&model=flux"
+            
+            r = requests.get(url, timeout=25)
             if r.status_code == 200:
                 with open(path, "wb") as f:
                     f.write(r.content)
-                if self._validar_imagem(path): return path
-        except: pass
+                if self._validar_imagem(path):
+                    logging.info("✅ Imagem hiper-realista gerada com sucesso pelo FLUX!")
+                    return path
+            else:
+                logging.error(f"❌ Pollinations retornou status {r.status_code}")
+        except Exception as e:
+            logging.error(f"❌ Pollinations falhou: {e}")
         return ""
 
     def _buscar_imagem_pexels(self, keyword: str, path: str) -> str:
@@ -177,6 +179,9 @@ class GeminiBrain:
                 data = requests.get(img_url, timeout=10).content
                 with open(path, "wb") as f:
                     f.write(data)
-                if self._validar_imagem(path): return path
-        except: pass
+                if self._validar_imagem(path):
+                    logging.info("✅ Imagem extraída do Pexels.")
+                    return path
+        except Exception as e:
+            logging.error(f"❌ Erro no Pexels: {e}")
         return ""
