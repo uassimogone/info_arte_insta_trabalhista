@@ -1,82 +1,68 @@
-import os
-import logging
-from src.config import SOURCES, PROFILE_USERNAME
-from src.gemini_brain import brain
-from src.telegram_bot import bot  # Assumindo que a instância do bot se chama 'bot' no seu telegram_bot.py
+import datetime
+from src.config import TOTAL_POSTS
+from src.drive_manager import DriveManager
+from src.gemini_brain import GeminiBrain
+from src.image_manager import ImageManager
+from src.telegram_bot import TelegramBot
 
-# Configuração de logs para exibição no GitHub Actions
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-HISTORICO_FILE = "historico_urls.txt"
-
-def carregar_historico():
-    """Lê o arquivo de histórico para evitar duplicidade de conteúdo."""
-    if not os.path.exists(HISTORICO_FILE):
-        return set()
-    with open(HISTORICO_FILE, "r", encoding="utf-8") as f:
-        return set(line.strip() for line in f if line.strip())
-
-def salvar_no_historico(url):
-    """Salva a URL ou tema processado no arquivo de histórico."""
-    with open(HISTORICO_FILE, "a", encoding="utf-8") as f:
-        f.write(f"{url}\n")
-
-def executar_pipeline():
-    logging.info(f"Iniciando automação de conteúdo para o perfil {PROFILE_USERNAME}")
+def executar_pipeline_diario():
+    print(f"⏰ [{datetime.datetime.now().strftime('%H:%M:%S')}] Iniciando Pipeline Dinâmico e Real...")
     
-    historico = carregar_historico()
-    conteudo_processado = False
+    drive = DriveManager()
+    brain = GeminiBrain()
+    img_render = ImageManager()
+    telegram = TelegramBot()
 
-    # Iterar pelas camadas de fontes na ordem de preferência estipulada
-    for camada_nome, urls in SOURCES.items():
-        if conteudo_processado:
-            break
-            
-        # Determinar o peso numérico da camada para o Gemini aplicar as regras de negócio
-        camada_id = 1 if "1" in camada_nome else (2 if "2" in camada_nome else 3)
-        
-        logging.info(f"Verificando fontes da {camada_nome.upper().replace('_', ' ')}...")
+    # 1. Carrega o histórico persistente (Sem redefinir ou limpar a lista)
+    historico = drive.ler_historico_urls()
 
-        for url in urls:
-            if url in historico:
-                logging.info(f"Link já processado anteriormente: {url}. Pulando...")
-                continue
+    # 2. Executa a varredura ativa na internet via Google Grounding
+    conteudo_bruto = brain.buscar_noticias_reais_na_internet(historico)
 
-            logging.info(f"Nova fonte identificada para processamento: {url}")
-            
-            # Simulação de captura/Injeção de contexto base
-            # Em execuções autônomas avançadas, aqui entraria um scraper. 
-            # Como base segura, passamos o contexto do tema/url para o cérebro gerar.
-            contexto_bruto = f"Gere uma análise estratégica corporativa baseada nas últimas atualizações de: {url}"
-            
-            # Aciona o motor da IA com a persona patronal e a regra da camada
-            resultado = brain.processar_conteudo(contexto_bruto, camada_origem=camada_id)
-            
-            if resultado.get("status") == "sucesso":
-                texto_final = resultado.get("conteudo")
-                
-                # Despacha o resultado formatado direto para o bot do Telegram
-                logging.info("Enviando roteiro gerado para aprovação no Telegram...")
-                try:
-                    # Tenta enviar via método de mensagem do seu telegram_bot.py
-                    # Se o seu método tiver nome diferente (ex: send_message), ajuste esta linha
-                    bot.enviar_mensagem(texto_final) 
-                    logging.info("Roteiro enviado com sucesso!")
-                    
-                    # Salva no histórico para nunca repetir a mesma fonte
-                    salvar_no_historico(url)
-                    conteudo_processado = True
-                    break
-                except Exception as e:
-                    logging.error(f"Falha ao enviar mensagem para o Telegram: {str(e)}")
-            else:
-                logging.error(f"Erro no processamento do Gemini: {resultado.get('mensagem')}")
+    if not conteudo_bruto:
+        print("☕ Falha ou ausência de atualizações inéditas na internet. Encerrando.")
+        return
 
-    if not conteudo_processado:
-        logging.info("Nenhum conteúdo novo encontrado para processar nesta rodada.")
+    # 3. Processa e redige os posts estruturados com o seu tom de voz (copy_style)
+    print("🧠 Redigindo posts com a inteligência artificial...")
+    posts_selecionados = brain.selecionar_e_redigir_posts(conteudo_bruto, historico)
+
+    if not posts_selecionados:
+        print("☕ Nenhuma postagem relevante qualificada para hoje. Encerrando.")
+        return
+
+    posts_enviados_com_sucesso = 0
+    for index, post in enumerate(posts_selecionados[:TOTAL_POSTS], start=1):
+        print(f"🎬 Processando Post {index}/{len(posts_selecionados)}...")
+
+        titulo = post.get("titulo", "Alerta Patronal")
+        legenda = post.get("legenda_completa", "")
+        prompt_vis = post.get("prompt_imagem", "Modern abstract corporate background")
+        keyword_pex = post.get("pexels_keyword", "business")
+        url_noticia = post.get("url", "")
+        ia_nominal = post.get("contem_ia_nominal", False)
+
+        tmp_img_ia = f"/tmp/topo_gerado_{index}.jpg"
+        img_final_png = f"/tmp/post_pronto_{index}.png"
+
+        # Executa a estratégia de cascata visual inteligente
+        img_resolvida = brain.gerar_imagem_ia(prompt_vis, keyword_pex, url_noticia, ia_nominal, tmp_img_ia)
+
+        if not img_resolvida:
+            print(f"⏭️ ALERTA: Nenhuma imagem obtida na cascata. Abortando Post {index}.")
+            continue
+
+        # Monta o slide final com a tarja do título e envia para o Telegram
+        img_render.montar_slide(img_resolvida, titulo, img_final_png)
+        telegram.enviar_post(img_final_png, index, legenda, titulo)
+        posts_enviados_com_sucesso += 1
+
+        # Alimenta a persistência para garantir o ineditismo nas próximas execuções
+        if url_noticia:
+            drive.salvar_no_historico(url_noticia)
+
+    if posts_enviados_com_sucesso > 0:
+        telegram.enviar_mensagem(f"✅ *Produção e curadoria concluídas!* {posts_enviados_com_sucesso} posts reais gerados e postados para @uassimogone.")
 
 if __name__ == "__main__":
-    try:
-        executar_pipeline()
-    except Exception as e:
-        logging.critical(f"Erro fatal na execução do pipeline principal: {str(e)}")
+    executar_pipeline_diario()
