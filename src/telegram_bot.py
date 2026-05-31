@@ -1,46 +1,39 @@
 import requests
-import logging
 from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 class TelegramBot:
+    """Gerencia toda a comunicação e entrega dos materiais produzidos via Telegram API."""
+    
     def __init__(self):
-        """Inicializa as credenciais do bot com as variáveis de ambiente."""
         self.token = TELEGRAM_BOT_TOKEN
         self.chat_id = TELEGRAM_CHAT_ID
-        
-        if not self.token or not self.chat_id:
-            logging.error("ERRO CRÍTICO: Credenciais do Telegram ausentes no ambiente.")
+        self.base_url = f"https://api.telegram.org/bot{self.token}"
 
-    def enviar_mensagem(self, texto: str) -> bool:
-        """
-        Envia a mensagem gerada para o chat configurado.
-        Utiliza o método sendMessage da API oficial do Telegram.
-        """
-        if not self.token or not self.chat_id:
-            raise ValueError("Token ou Chat ID do Telegram não configurados.")
-
-        url = f"https://api.telegram.org/bot{self.token}/sendMessage"
-        
-        payload = {
-            "chat_id": self.chat_id,
-            "text": texto,
-            "parse_mode": "HTML" # Permite negritos e formatações básicas caso a IA gere
-        }
-
+    def enviar_mensagem(self, texto: str):
+        """Envia uma mensagem de texto simples para o canal/chat."""
+        url = f"{self.base_url}/sendMessage"
+        payload = {"chat_id": self.chat_id, "text": texto, "parse_mode": "Markdown"}
         try:
-            logging.info("Disparando requisição HTTP POST para a API do Telegram...")
-            response = requests.post(url, json=payload, timeout=10)
-            
-            # Levanta exceção se o HTTP Status Code for erro (4xx ou 5xx)
-            response.raise_for_status() 
-            
-            return True
-            
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Falha na comunicação com o Telegram: {str(e)}")
-            if response is not None:
-                logging.error(f"Retorno da API: {response.text}")
-            raise e
+            r = requests.post(url, json=payload, timeout=15)
+            return r.json()
+        except Exception as e:
+            print(f"❌ Erro ao enviar mensagem de texto no Telegram: {e}")
 
-# Exporta uma instância Singleton (o objeto 'bot' que o main.py está procurando)
-bot = TelegramBot()
+    def enviar_post(self, imagem_path: str, num_post: int, legenda: str, titulo_hook: str):
+        """Envia a imagem gerada seguida imediatamente pela legenda correspondente."""
+        url_photo = f"{self.base_url}/sendPhoto"
+        
+        # 1. Envia o card visual do post
+        print(f"📤 Enviando imagem do Post {num_post}/3 para o Telegram...")
+        try:
+            with open(imagem_path, "rb") as img:
+                files = {"photo": img}
+                data = {"chat_id": self.chat_id}
+                requests.post(url_photo, data=data, files=files, timeout=30)
+        except Exception as e:
+            print(f"❌ Falha ao enviar imagem do Post {num_post}: {e}")
+
+        # 2. Envia a legenda formatada estruturada
+        print(f"✍️ Enviando legenda do Post {num_post}/3...")
+        texto_completo = f"📢 *LEGENDA — POST {num_post} DE 3*\n*{titulo_hook}*\n\n---\n{legenda}\n---"
+        self.enviar_mensagem(texto_completo)
