@@ -21,8 +21,9 @@ class GeminiBrain:
             "max_output_tokens": 2048,
         }
         
+        # CORREÇÃO APLICADA: Utilização do alias '-latest' exigido pelo endpoint v1beta
         self.model = genai.GenerativeModel(
-            model_name="gemini-1.5-pro",
+            model_name="gemini-1.5-pro-latest",
             generation_config=self.generation_config,
             system_instruction=PERSONA_PROMPT
         )
