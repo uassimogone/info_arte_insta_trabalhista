@@ -143,3 +143,6 @@ https://tribunadoplanalto.com.br/nova-regra-trabalhista-obriga-empresas-a-preven
 [TEMA ABORDADO: Biometria no Ponto? Cuidado: Multas LGPD e Dano Moral à Vista.] - URL da notícia
 [TEMA ABORDADO: STF Modula Vínculo: Contratos Atuais Seguros, Futuros Exigem Atenção.] - URL da notícia
 [TEMA ABORDADO: Doença Grave: Demissão Discriminatória Gera Multa Milionária ao Caixa.] - URL da notícia
+[TEMA ABORDADO: PGR desatualizado? Multas milionárias ameaçam seu caixa!] - https://www.exemplo.com/noticia
+[TEMA ABORDADO: Vínculo em plataformas: STF adia, mas risco persiste!] - https://www.exemplo.com/noticia
+[TEMA ABORDADO: Grupo econômico: STJ amplia risco de solidariedade anticorrupção!] - https://www.exemplo.com/noticia
