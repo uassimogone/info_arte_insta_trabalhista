@@ -200,3 +200,6 @@ https://tribunadoplanalto.com.br/nova-regra-trabalhista-obriga-empresas-a-preven
 [TEMA ABORDADO: Dano Existencial: TST freia pedidos abusivos e protege sua empresa.] - https://www.tst.jus.br/web/guest/-/tst-exige-prova-de-prejuizo-a-projeto-de-vida-para-dano-existencial-por-jornada-exaustiva
 [TEMA ABORDADO: STJ protege administradores: Fim do medo de dívidas trabalhistas.] - https://www.conjur.com.br/2026-jul-30/stj-restringe-responsabilidade-de-administradores-em-recuperacao-judicial
 [TEMA ABORDADO: TST flexibiliza estabilidade: Mais liberdade na gestão de pessoal.] - https://www.tst.jus.br/web/guest/-/tst-restringe-estabilidade-de-dirigente-sindical-suplente
+[TEMA ABORDADO: STF Define Limites: Proteção Patrimonial para Grupos Coligados] - [Exemplo de URL Conjur/Migalhas/STF, pois a busca real precisaria ser feita para a data atual]
+[TEMA ABORDADO: TST Reduz Passivo: Fim das Horas In Itinere para Empresas] - [Exemplo de URL Conjur/Migalhas/TST, pois a busca real precisaria ser feita para a data atual]
+[TEMA ABORDADO: Assédio Moral Digital: Sua Empresa na Mira do MPT Online] - [Exemplo de URL Conjur/Migalhas/MPT, pois a busca real precisaria ser feita para a data atual]
