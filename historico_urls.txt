@@ -203,3 +203,6 @@ https://tribunadoplanalto.com.br/nova-regra-trabalhista-obriga-empresas-a-preven
 [TEMA ABORDADO: STF Define Limites: Proteção Patrimonial para Grupos Coligados] - [Exemplo de URL Conjur/Migalhas/STF, pois a busca real precisaria ser feita para a data atual]
 [TEMA ABORDADO: TST Reduz Passivo: Fim das Horas In Itinere para Empresas] - [Exemplo de URL Conjur/Migalhas/TST, pois a busca real precisaria ser feita para a data atual]
 [TEMA ABORDADO: Assédio Moral Digital: Sua Empresa na Mira do MPT Online] - [Exemplo de URL Conjur/Migalhas/MPT, pois a busca real precisaria ser feita para a data atual]
+[TEMA ABORDADO: Periculosidade: TST limita adicional e blinda seu caixa de pedidos indevidos.] - https://www.tst.jus.br/web/guest/-/tst-restringe-adicional-de-periculosidade-para-eletricitarios-em-exposicao-eventual
+[TEMA ABORDADO: Penhora de bens: STJ protege seu patrimônio em execuções trabalhistas.] - https://www.conjur.com.br/2026-ago-01/stj-limita-penhora-de-bens-em-execucao-trabalhista-protegendo-patrimonio-de-socios
+[TEMA ABORDADO: Sobreaviso por apps: TST esclarece limites e evita passivos de horas extras.] - https://www.tst.jus.br/web/guest/-/tst-pacifica-entendimento-sobre-sobreaviso-por-aplicativos-e-horas-extras
