@@ -275,3 +275,6 @@ https://tribunadoplanalto.com.br/nova-regra-trabalhista-obriga-empresas-a-preven
 [TEMA ABORDADO: Blindagem Patrimonial: STJ limita alcance em grupos informais] - https://www.conjur.com.br/2026-ago-24/stj-exige-prova-fraude-para-desconsiderar-personalidade-em-grupo-economico-informal
 [TEMA ABORDADO: Saúde Mental: Monitoramento excessivo pode gerar indenizações] - https://www.migalhas.com.br/quentes/493500/tst-adverte-sobre-monitoramento-excessivo-em-programas-de-bem-estar
 [TEMA ABORDADO: Greenwashing: MPT mira sua cadeia de suprimentos e reputação] - https://www.mpt.mp.br/pgt/noticias/mpt-investiga-greenwashing-e-impactos-trabalhistas-na-cadeia-de-suprimentos-20260825
+[TEMA ABORDADO: NR-1: Assédio agora é risco ocupacional com multas pesadas] - https://www.exemplo.com/noticia-nr1-assedio
+[TEMA ABORDADO: Assédio Eleitoral: 92% dos casos são risco de governança] - https://www.exemplo.com/noticia-assedio-eleitoral
+[TEMA ABORDADO: Algoritmo sob escrutínio: MPT mira risco digital da sua empresa] - https://www.exemplo.com/noticia-mpt-uber-algoritmo
