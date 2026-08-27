@@ -278,3 +278,6 @@ https://tribunadoplanalto.com.br/nova-regra-trabalhista-obriga-empresas-a-preven
 [TEMA ABORDADO: NR-1: Assédio agora é risco ocupacional com multas pesadas] - https://www.exemplo.com/noticia-nr1-assedio
 [TEMA ABORDADO: Assédio Eleitoral: 92% dos casos são risco de governança] - https://www.exemplo.com/noticia-assedio-eleitoral
 [TEMA ABORDADO: Algoritmo sob escrutínio: MPT mira risco digital da sua empresa] - https://www.exemplo.com/noticia-mpt-uber-algoritmo
+[TEMA ABORDADO: Terceirização: STF confirma, mas falha na fiscalização gera dívidas] - https://www.conjur.com.br/2026-ago-26/stf-reafirma-constitucionalidade-terceirizacao-atividade-fim-exige-fiscalizacao
+[TEMA ABORDADO: Canal de denúncias mal gerido: TST alerta para indenizações] - https://www.migalhas.com.br/quentes/494000/tst-adverte-sobre-riscos-em-canais-de-denuncia-e-compliance
+[TEMA ABORDADO: Discriminação etária: MPT mira empresas, risco de ações coletivas] - https://www.mpt.mp.br/pgt/noticias/mpt-investiga-discriminacao-etaria-processos-seletivos-demissoes-20260826
