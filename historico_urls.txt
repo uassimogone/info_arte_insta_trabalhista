@@ -320,3 +320,6 @@ https://tribunadoplanalto.com.br/nova-regra-trabalhista-obriga-empresas-a-preven
 [TEMA ABORDADO: STF redefine justiça gratuita: seu custo processual em jogo.] - https://www.exemplo.com/noticia-stf-justica-gratuita
 [TEMA ABORDADO: Estabilidade gestante: TRT-3 afasta e pune má-fé.] - https://www.exemplo.com/noticia-trt3-estabilidade-gestante
 [TEMA ABORDADO: Uniforme inadequado: R$20 mil em danos morais.] - https://www.exemplo.com/noticia-burgerking-uniforme
+[TEMA ABORDADO: Controle de Banheiro: Risco de Dano Moral Presumido] - https://www.migalhas.com.br/quentes/496500/tema-117-do-tst-e-o-risco-do-dano-moral-presumido
+[TEMA ABORDADO: Terceirização: STF Exige Prova de Falha na Fiscalização] - https://www.trt5.jus.br/noticias/stf-decide-que-autor-da-acao-deve-comprovar-falha-na-fiscalizacao-de-contratos-de-terceirizacao
+[TEMA ABORDADO: Assédio Eleitoral: TST e TSE Aumentam o Risco] - https://www.migalhas.com.br/quentes/496200/assedio-eleitoral-o-risco-trabalhista-que-o-gestor-pode-criar
